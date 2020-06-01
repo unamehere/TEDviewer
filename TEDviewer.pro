@@ -1,4 +1,5 @@
-QT       += core gui
+QT       += core gui \
+            serialport \
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -16,11 +17,19 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    backroundworker.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    serialworker.cpp \
+    thermalcomhandler.cpp \
+    thermalimage.cpp
 
 HEADERS += \
-    mainwindow.h
+    backroundworker.h \
+    mainwindow.h \
+    serialworker.h \
+    thermalcomhandler.h \
+    thermalimage.h
 
 FORMS += \
     mainwindow.ui
@@ -29,3 +38,5 @@ FORMS += \
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+DISTFILES +=
