@@ -10,15 +10,6 @@
  * and makes the communication with the other classes
  */
 
-#define READCALL "R_READ_ALL\n"
-#define WRITESTART "WS"
-#define WRITEEND "WE"
-#define READSTART "RS"
-#define READEND "RE"
-#define SPLITPARA "#"
-#define SPLITVALUE ";"
-
-
 class backroundworker : public QObject
 {
     Q_OBJECT

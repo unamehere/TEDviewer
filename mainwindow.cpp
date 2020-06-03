@@ -7,6 +7,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     ui->com_Comports->addItems(bworker.GetComPorts());
+    tCoHa = new thermalComHandler();
     tImg = new ThermalImage(10,10);
     tImg->addPixel(0,0,20);
     tImg->addPixel(1,1,30);
@@ -22,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent)
     int h = myLabel->height ();
     myLabel->setPixmap(QPixmap::fromImage(tImg->getImg()->scaledToWidth(w)));
     myLabel->show();
+    ui->control_res->addItems(tCoHa->getResolution());
 }
 
 MainWindow::~MainWindow()

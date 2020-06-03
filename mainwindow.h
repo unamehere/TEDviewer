@@ -2,8 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "backroundworker.h"
 #include "thermalimage.h"
+#include "thermalcomhandler.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -14,6 +14,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 private:
     ThermalImage* tImg;
+    thermalComHandler* tCoHa;
 
 public:
     MainWindow(QWidget *parent = nullptr);

@@ -1,5 +1,5 @@
 #include "backroundworker.h"
-
+#include "thermalcomhandler.h"
 
 
 bool backroundworker::getConnected() const
