@@ -12,10 +12,6 @@ QT_END_NAMESPACE
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-private:
-    ThermalImage* tImg;
-    thermalComHandler* tCoHa;
-
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
@@ -23,8 +19,22 @@ public:
 private:
     Ui::MainWindow *ui;
     backroundworker bworker;
+    thermalComHandler* tCoHa;
 
+
+    void resizeEvent(QResizeEvent*);
+
+signals:
+    void startStopS(bool state, QString res);
 public slots:
     void on_com_refresh_clicked();
+    void on_com_connect_clicked();
+    void on_control_start_clicked();
+
+    //handlers
+    void handle_resizeImgLabel();
+    void handle_com_opened();
+    void handle_com_closed();
+    void handle_NewImageData();
 };
 #endif // MAINWINDOW_H
