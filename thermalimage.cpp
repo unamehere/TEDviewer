@@ -1,12 +1,12 @@
 #include "thermalimage.h"
 
 
-float ThermalImage::getMin() const
+const float& ThermalImage::getMin() const
 {
     return minT;
 }
 
-float ThermalImage::getMax() const
+const float& ThermalImage::getMax() const
 {
     return maxT;
 }
@@ -41,9 +41,28 @@ void ThermalImage::addPixel(int x, int y, float value)
             }
             int cindex = getPercent(value);
             QColor c = colorGradient.at(cindex);
-            img->setPixelColor(x,y,c);
+            img->setPixelColor(x,resY-1-y,c); //To Invert Y Axis
         }
     }
+}
+
+bool ThermalImage::addBlock(int startX, int startY, int sizeX, int sizeY, QVector<QVector<float> > &vals)
+{
+    bool retVal = true;
+    if(startX<0 || startY<0 || startX+sizeX>resX || startY+sizeY > resY)
+        retVal = false;
+    if(retVal)
+    {
+        for (int y = 0; y < sizeY; y++)
+        {
+            for (int x = 0; x < sizeX; ++x)
+            {
+                    float val = vals.data()[x][y];
+                    addPixel(startX+x,startY+y,val);
+            }
+        }
+    }
+    return retVal;
 }
 
 QImage *ThermalImage::getImg() const
@@ -51,8 +70,27 @@ QImage *ThermalImage::getImg() const
     return img;
 }
 
+const float &ThermalImage::getTemp(int x, int y)
+{
+    return tempMap->data()[x][y];
+}
+
 void ThermalImage::updateGradient()
 {
+    for (int y = 0; y < static_cast<int>(resY); y++)
+    {
+        for (int x = 0; x < static_cast<int>(resX); x++)
+        {
+            QColor nowC = img->pixelColor(x,resY-1-y);
+            if(nowC != Qt::black)
+            {
+                float value = getTemp(x,y);
+                int cindex = getPercent(value);
+                QColor c = colorGradient.at(cindex);
+                img->setPixelColor(x,resY-1-y,c); //Invert Y from Image
+            }
+        }
+    }
 
 }
 
@@ -86,5 +124,5 @@ ThermalImage::ThermalImage(unsigned resX_, unsigned resY_, QWidget *parent):resX
 ThermalImage::~ThermalImage()
 {
     delete img;
-    delete [] tempMap;
+    delete tempMap;
 }
