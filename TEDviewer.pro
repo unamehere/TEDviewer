@@ -18,6 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     backroundworker.cpp \
+    command.cpp \
     main.cpp \
     mainwindow.cpp \
     serialworker.cpp \
@@ -26,6 +27,7 @@ SOURCES += \
 
 HEADERS += \
     backroundworker.h \
+    command.h \
     mainwindow.h \
     serialworker.h \
     thermalcomhandler.h \
