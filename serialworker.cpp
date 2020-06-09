@@ -45,12 +45,14 @@ void SerialWorker::ConnectToPort(QString sPortName, int iBaudRate, int iDataBits
         connect(m_SerialPort,SIGNAL(readyRead()),this,SLOT(handleReadyRead()));
         connect(m_SerialPort,SIGNAL(errorOccurred(QSerialPort::SerialPortError)),this,SLOT(handleError(QSerialPort::SerialPortError)));
         connect(m_rxTimer, SIGNAL(timeout()), this, SLOT(handleRxTimeout()));
+        emit connected();
     }
 
 }
 
 void SerialWorker::sendMessage(QByteArray txMessage)
 {
+    qDebug()<< "Send Message: " << txMessage;
     if(m_SerialPort->isOpen())
     {
         qint64 sendCount = 0;
@@ -74,7 +76,7 @@ void SerialWorker::handleReadyRead()
 {
     QByteArray rxMessage = m_SerialPort->readAll();
     m_rxMessageList.append(rxMessage);
-    m_rxTimer->start(100);
+    m_rxTimer->start(5);
 }
 
 void SerialWorker::ClosePort()
@@ -84,7 +86,10 @@ void SerialWorker::ClosePort()
         m_SerialPort->close();
         m_SerialPort->deleteLater();
         if (!m_SerialPort->isOpen())
+        {
             emit ErrorString("Port closed");
+            emit closed();
+        }
     }
     else
     {
@@ -103,6 +108,7 @@ void SerialWorker::handleRxTimeout()
 {
     m_rxTimer->stop();
     QByteArray rxMessage = m_rxMessageList.join();
+    qDebug()<< "received Message: " <<rxMessage;
     emit messageReceived(rxMessage);
     m_rxMessageList = {};
 }
