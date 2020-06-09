@@ -31,7 +31,8 @@ signals:
     void ClosePort();
     void ErrorMessageFF(QString Message);
     void sendMessageCom(QByteArray TXMessage);
-    void ConnectedPort();
+    void newRXMessageComS(QByteArray RXMessage);
+    void connectedPort();
     void closedPort();
     void readSuccess();
 
