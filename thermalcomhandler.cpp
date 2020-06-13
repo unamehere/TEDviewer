@@ -41,7 +41,15 @@ bool thermalComHandler::fillCommandList(const QString &Res)
     else
     {
         unsigned xStep = static_cast<unsigned>((maxDegX_now-minDegX_now-sensorFOV_X)*1.0/mCountX);
+        if(xStep > sensorFOV_X)
+        {
+            xStep = sensorFOV_X;
+        }
         unsigned yStep = static_cast<unsigned>((maxDegY_now-minDegY_now-sensorFOV_Y)*1.0/mCountY);
+        if(yStep > sensorFOV_Y)
+        {
+            yStep = sensorFOV_Y;
+        }
         unsigned startDegX = minDegX_now+sensorFOV_X/2;
         unsigned startDegY = minDegY_now+sensorFOV_Y/2;
         for(unsigned y = 0; y < mCountY; y++)
@@ -52,17 +60,24 @@ bool thermalComHandler::fillCommandList(const QString &Res)
                 if(y%2 == 0)
                 {
                     deg = startDegX+x*xStep;
+                    command tempComm(ctMEASATROT,deg,x,y);
+                    commandList.append(tempComm);
                 }
                 else
                 {
                     deg = startDegX+(mCountX-x)*xStep;
+                    command tempComm(ctMEASATROT,deg,mCountX - x,y);
+                    commandList.append(tempComm);
                 }
-                command tempComm(ctMEASATROT,deg,x,y);
+
+            }
+            if(mCountY>1)
+            {
+                unsigned deg = startDegY+ y*yStep; //invert y axisS
+                deg = 300 - deg;
+                command tempComm(ctGOTOTILT,deg);
                 commandList.append(tempComm);
             }
-            unsigned deg = startDegY+y*yStep;
-            command tempComm(ctGOTOTILT,deg);
-            commandList.append(tempComm);
         }
     }
     return bRetVal;
@@ -81,14 +96,21 @@ void thermalComHandler::handleStartStopSignal(bool state, QString res)
         if(status)
         {
             qDebug() << "OK";
-            command homeX(ctGOTOROT,midX);
-            command homeY(ctGOTOTILT,midY);
+            //command homeX(ctGOTOROT,midX); // add Single Command handling
+            //command homeY(ctGOTOTILT,midY);
             //emit sendSingleCommandS(homeX);
             //emit sendSingleCommandS(homeY);
             tImgP = new ThermalImage(resX,resY);
             handleSendLoopStartCommand();
 
         }
+
+    }
+    else
+    {
+        delete tImgP;
+        loopCount = 0;
+        commandList.clear();
 
     }
     loopRunning = state;
@@ -113,11 +135,11 @@ bool thermalComHandler::translateBAtoFLoatVect(const QByteArray& ba, QVector<QVe
         bRetVal = false;
     if(bRetVal)
     {
-        for(int xc = 0; xc < sensorResX; xc++ )
+        for(int xc = 0; xc < static_cast<int>(sensorResX); xc++ )
         {
             QStringList subStrL = strL[xc+1].split(",");
             QVector<float> tvec;
-            for (int yc = 0; yc< sensorResY; yc++)
+            for (int yc = 0; yc< static_cast<int>(sensorResY); yc++)
             {
                 tvec.append(subStrL[yc].toFloat());
             }
@@ -139,11 +161,16 @@ QByteArray thermalComHandler::translateCommandtoBA(const command &comm)
 
 thermalComHandler::thermalComHandler(QObject *parent) : QObject(parent)
 {
-    tImgP = new ThermalImage(16,4);
+    tImgP = new ThermalImage(4,16);
     connect(this, SIGNAL(sendSingleCommandS(command)), this, SLOT(handleSendSingleCommand(command)));
 }
 
-void thermalComHandler::handleSendSingleCommand(command comm)
+thermalComHandler::~thermalComHandler()
+{
+    delete  tImgP;
+}
+
+void thermalComHandler::handleSendSingleCommand(const command& comm)
 {
     msgType = mtSingle;
     singleCallbackReceived = false;
@@ -166,46 +193,50 @@ void thermalComHandler::handleSingleCallback(QByteArray msg)
 
 void thermalComHandler::handleLoopCallback(const QByteArray& msg)
 {
-    command nowComm = commandList[loopCount];
-    QString name = nowComm.getComm().mid(0,2);
-    if(name == "MR" && loopRunning == true)
+    if(loopRunning)
     {
-        if(msg.length()>4)
+        command nowComm = commandList[loopCount];
+        QString name = nowComm.getComm().mid(0,2);
+        if(name == command::getCommandStr(ctMEASATROT))
         {
-            QVector<QVector<float>> vect;
-            if(translateBAtoFLoatVect(msg,&vect))
+            if(msg.length()>4)
             {
-                tImgP->addBlock(nowComm.getXPos()*4,nowComm.getYPos()*16,sensorResX,sensorResY,vect);
-                emit newImageData();
+                QVector<QVector<float>> vect;
+                if(translateBAtoFLoatVect(msg,&vect))
+                {
+                    tImgP->addBlock(nowComm.getXPos()*4,nowComm.getYPos()*16,sensorResX,sensorResY,vect);
+                    emit newImageData();
+                }
             }
         }
-    }
-    if(name == "MM" && loopRunning == true)
-    {
-        if(msg.length()>4)
+        if(name == command::getCommandStr(ctMEASURE))
         {
-            QVector<QVector<float>> vect;
-            if(translateBAtoFLoatVect(msg,&vect))
+            if(msg.length()>4)
             {
-                tImgP->addBlock(nowComm.getXPos(),nowComm.getYPos(),sensorResX,sensorResY,vect);
-                emit newImageData();
+                QVector<QVector<float>> vect;
+                if(translateBAtoFLoatVect(msg,&vect))
+                {
+                    tImgP->addBlock(nowComm.getXPos(),nowComm.getYPos(),sensorResX,sensorResY,vect);
+                    emit newImageData();
+                }
             }
         }
-    }
-    if(loopRunning == true)
-    {
-        if(loopCount<commandList.length()-1)
+        if(!msg.startsWith("ER")) //when answer not Error send new Command else send old Command
         {
-            loopCount +=1;
+            if(loopCount<commandList.length()-1)
+            {
+                loopCount +=1;
+            }
+            else
+            {
+                loopCount = 0;
+            }
         }
         else
         {
-            loopCount = 0;
+            qDebug()<< "Error in recv. Message while Loop";
         }
-        if(loopRunning)
-        {
-            handleSendLoopStartCommand();
-        }
+        handleSendLoopStartCommand();
     }
 }
 
