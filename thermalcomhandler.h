@@ -20,10 +20,10 @@ class thermalComHandler : public QObject
     const unsigned minDegY = 0;
     const unsigned maxDegX = 300;
     const unsigned maxDegY = 300;
-    unsigned minDegX_now = 10;
-    unsigned minDegY_now = 10;
+    unsigned minDegX_now = 20;
+    unsigned minDegY_now = 20;
     unsigned maxDegX_now = 110;
-    unsigned maxDegY_now = 85; //toDo: keep aspectratio
+    unsigned maxDegY_now = 110; //toDo: keep aspectratio
 
     ThermalImage *tImgP;
 
@@ -53,6 +53,7 @@ public:
     };
 
     explicit thermalComHandler(QObject *parent = nullptr);
+    ~thermalComHandler();
 
     const QStringList& getResolutionList() const;
 
@@ -79,7 +80,7 @@ signals:
     void newImageData();
 
 public slots:
-    void handleSendSingleCommand(command comm);
+    void handleSendSingleCommand(const command& comm);
     void handleSendLoopStartCommand();
     void handleSingleCallback(QByteArray msg);
     void handleCommandCallback(QByteArray callbackStr);
