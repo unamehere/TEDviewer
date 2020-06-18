@@ -2,8 +2,6 @@
 #define COMMAND_H
 #include <QObject>
 
-const QStringList writeCalls = {"GR", "GT", "MR", "MT", "MM"};
-
 class command
 {
     QString comm;
@@ -12,6 +10,8 @@ class command
     unsigned yPos;
 public:
     explicit command(int ctComm, unsigned deg_ = 0,unsigned xPos_ = 0,unsigned yPos_ = 0);
+
+    static QString getCommandStr(int callID);
 
     const QString& getComm() const
     {
