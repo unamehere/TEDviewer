@@ -15,16 +15,6 @@ void thermalComHandler::setMinDegY_now(const unsigned &value)
     minDegY_now = value;
 }
 
-void thermalComHandler::setMaxDegX_now(const unsigned &value)
-{
-    maxDegX_now = value;
-}
-
-void thermalComHandler::setMaxDegY_now(const unsigned &value)
-{
-    maxDegY_now = value;
-}
-
 bool thermalComHandler::fillCommandList(const QString &Res)
 {
     bool bRetVal = true;
@@ -40,24 +30,23 @@ bool thermalComHandler::fillCommandList(const QString &Res)
     }
     else
     {
-        unsigned xStep = static_cast<unsigned>((maxDegX_now-minDegX_now-sensorFOV_X)*1.0/mCountX);
-        if(xStep > sensorFOV_X)
-        {
-            xStep = sensorFOV_X;
-        }
-        unsigned yStep = static_cast<unsigned>((maxDegY_now-minDegY_now-sensorFOV_Y)*1.0/mCountY);
-        if(yStep > sensorFOV_Y)
-        {
-            yStep = sensorFOV_Y;
-        }
+        unsigned xStep = static_cast<unsigned>(sensorFOV_X); // no interlacing
+        unsigned yStep = static_cast<unsigned>(sensorFOV_Y);
         unsigned startDegX = minDegX_now+sensorFOV_X/2;
         unsigned startDegY = minDegY_now+sensorFOV_Y/2;
         for(unsigned y = 0; y < mCountY; y++)
         {
+            if(mCountY>1)
+            {
+                unsigned deg = startDegY+ y*yStep; //invert y axisS
+                deg = 300 - deg;
+                command tempComm(ctGOTOTILT,deg);
+                commandList.append(tempComm);
+            }
             for(unsigned x = 0; x< mCountX; x++)
             {
-                unsigned deg;
-                if(y%2 == 0)
+                unsigned deg = 0;
+                if(true)
                 {
                     deg = startDegX+x*xStep;
                     command tempComm(ctMEASATROT,deg,x,y);
@@ -65,18 +54,11 @@ bool thermalComHandler::fillCommandList(const QString &Res)
                 }
                 else
                 {
-                    deg = startDegX+(mCountX-x)*xStep;
-                    command tempComm(ctMEASATROT,deg,mCountX - x,y);
+                    deg = startDegX+(mCountX -1-x)*xStep;
+                    command tempComm(ctMEASATROT,deg,mCountX - 1- x,y);
                     commandList.append(tempComm);
                 }
 
-            }
-            if(mCountY>1)
-            {
-                unsigned deg = startDegY+ y*yStep; //invert y axisS
-                deg = 300 - deg;
-                command tempComm(ctGOTOTILT,deg);
-                commandList.append(tempComm);
             }
         }
     }
@@ -89,8 +71,8 @@ void thermalComHandler::handleStartStopSignal(bool state, QString res)
     {
         unsigned resX = static_cast<unsigned>(res.split("x")[0].toInt());
         unsigned resY = static_cast<unsigned>(res.split("x")[1].toInt());
-        unsigned midX = (maxDegX_now-minDegX_now)/2;
-        unsigned midY = (maxDegY_now-minDegY_now)/2;
+        //unsigned midX = (maxDegX_now-minDegX_now)/2;
+        //unsigned midY = (maxDegY_now-minDegY_now)/2;
         bool status = fillCommandList(res);
         //goto middle Position
         if(status)

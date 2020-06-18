@@ -16,14 +16,10 @@ class thermalComHandler : public QObject
     const unsigned sensorResX = 4; //Pxls
     const unsigned sensorFOV_Y = 40; //Deg
     const unsigned sensorFOV_X = 10; //Deg
-    const unsigned minDegX = 0; //constants of the min and max Degrees of the Hardware
-    const unsigned minDegY = 0;
-    const unsigned maxDegX = 300;
-    const unsigned maxDegY = 300;
     unsigned minDegX_now = 20;
     unsigned minDegY_now = 20;
-    unsigned maxDegX_now = 110;
-    unsigned maxDegY_now = 110; //toDo: keep aspectratio
+    //unsigned maxDegX_now = 110;
+    //unsigned maxDegY_now = 110; //toDo: keep aspectratio
 
     ThermalImage *tImgP;
 
@@ -45,6 +41,8 @@ public:
         ctMEASATROT = 2,
         ctMEASATTILT = 3,
         ctMEASURE = 4,
+        ctRESPOK = 5,
+        ctRESPER = 6
     };
     enum MsgType
     {
@@ -60,10 +58,6 @@ public:
     void setMinDegX_now(const unsigned &value);
 
     void setMinDegY_now(const unsigned &value);
-
-    void setMaxDegX_now(const unsigned &value);
-
-    void setMaxDegY_now(const unsigned &value);
 
     bool fillCommandList(const QString &Res);
 
