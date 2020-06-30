@@ -1,5 +1,6 @@
 QT       += core gui \
             serialport \
+            network\
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -22,6 +23,7 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     serialworker.cpp \
+    sockethandler.cpp \
     thermalcomhandler.cpp \
     thermalimage.cpp
 
@@ -30,6 +32,7 @@ HEADERS += \
     command.h \
     mainwindow.h \
     serialworker.h \
+    sockethandler.h \
     thermalcomhandler.h \
     thermalimage.h
 

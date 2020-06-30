@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include "thermalimage.h"
 #include "thermalcomhandler.h"
+#include "sockethandler.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -20,21 +21,29 @@ private:
     Ui::MainWindow *ui;
     backroundworker bworker;
     thermalComHandler* tCoHa;
+    socketHandler socket;
 
 
     void resizeEvent(QResizeEvent*);
 
 signals:
     void startStopS(bool state, QString res);
+    void newMinMaxTemps(float min, float max);
 public slots:
     void on_com_refresh_clicked();
     void on_com_connect_clicked();
     void on_control_start_clicked();
+    void on_ip_connect_clicked();
 
     //handlers
     void handle_resizeImgLabel();
     void handle_com_opened();
     void handle_com_closed();
+    void handle_ip_opened();
+    void handle_ip_closed();
     void handle_NewImageData();
+    void handle_newMinMaxT();
+    void handle_fixedTempCB_changed(int state);
+    void handle_newFixedTemp();
 };
 #endif // MAINWINDOW_H

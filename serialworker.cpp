@@ -2,7 +2,7 @@
 
 SerialWorker::SerialWorker(QObject *parent) : QObject(parent)
 {
-
+    m_SerialPort = nullptr;
 }
 
 SerialWorker::~SerialWorker()

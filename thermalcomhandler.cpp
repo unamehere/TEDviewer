@@ -82,7 +82,13 @@ void thermalComHandler::handleStartStopSignal(bool state, QString res)
             //command homeY(ctGOTOTILT,midY);
             //emit sendSingleCommandS(homeX);
             //emit sendSingleCommandS(homeY);
+            if(tImgP != nullptr)
+            {
+                //delete tImgP;
+                tImgP = nullptr;
+            }
             tImgP = new ThermalImage(resX,resY);
+            connect(tImgP, SIGNAL(newMinMax()), this, SIGNAL(newMinMax()));
             handleSendLoopStartCommand();
 
         }
@@ -96,6 +102,13 @@ void thermalComHandler::handleStartStopSignal(bool state, QString res)
 
     }
     loopRunning = state;
+}
+
+void thermalComHandler::handleComTimeout()
+{
+    loopRunning = false;
+    loopCount = 0;
+    commandList.clear();
 }
 
 void thermalComHandler::setTImgP(ThermalImage *value)
@@ -145,6 +158,7 @@ thermalComHandler::thermalComHandler(QObject *parent) : QObject(parent)
 {
     tImgP = new ThermalImage(4,16);
     connect(this, SIGNAL(sendSingleCommandS(command)), this, SLOT(handleSendSingleCommand(command)));
+    connect(tImgP, SIGNAL(newMinMax()), this, SIGNAL(newMinMax()));
 }
 
 thermalComHandler::~thermalComHandler()

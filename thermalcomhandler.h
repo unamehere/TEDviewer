@@ -17,9 +17,10 @@ class thermalComHandler : public QObject
     const unsigned sensorFOV_Y = 40; //Deg
     const unsigned sensorFOV_X = 10; //Deg
     unsigned minDegX_now = 20;
-    unsigned minDegY_now = 20;
-    //unsigned maxDegX_now = 110;
-    //unsigned maxDegY_now = 110; //toDo: keep aspectratio
+    unsigned minDegY_now = 50;
+    unsigned maxDegX_now = 110;
+    unsigned maxDegY_now = 110; //toDo: keep aspectratio
+    QTimer ComTimer;
 
     ThermalImage *tImgP;
 
@@ -72,6 +73,7 @@ signals:
     void startStopLoopSignal(bool state);
     void sendCommandMessage(QByteArray msg);
     void newImageData();
+    void newMinMax();
 
 public slots:
     void handleSendSingleCommand(const command& comm);
@@ -79,6 +81,7 @@ public slots:
     void handleSingleCallback(QByteArray msg);
     void handleCommandCallback(QByteArray callbackStr);
     void handleStartStopSignal(bool state, QString res);
+    void handleComTimeout();
 };
 
 #endif // THERMALCOMHANDLER_H
