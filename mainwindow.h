@@ -34,6 +34,7 @@ public slots:
     void on_com_connect_clicked();
     void on_control_start_clicked();
     void on_ip_connect_clicked();
+    void on_control_saveImg_clicked();
 
     //handlers
     void handle_resizeImgLabel();
@@ -45,5 +46,6 @@ public slots:
     void handle_newMinMaxT();
     void handle_fixedTempCB_changed(int state);
     void handle_newFixedTemp();
+    void handle_connectionError(QString msg);
 };
 #endif // MAINWINDOW_H
