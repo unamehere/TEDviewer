@@ -34,10 +34,8 @@ signals:
     void newRXMessageComS(QByteArray RXMessage);
     void connectedPort();
     void closedPort();
-    void readSuccess();
 
 public slots:
-    void newRxMessageCom(QByteArray RxMessage);
     void comRead();
 };
 
