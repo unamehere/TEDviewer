@@ -46,7 +46,7 @@ bool thermalComHandler::fillCommandList(const QString &Res)
             for(unsigned x = 0; x< mCountX; x++)
             {
                 unsigned deg = 0;
-                if(true)
+                if(y%2 == 0)
                 {
                     deg = startDegX+x*xStep;
                     command tempComm(ctMEASATROT,deg,x,y);
@@ -97,11 +97,12 @@ void thermalComHandler::handleStartStopSignal(bool state, QString res)
     else
     {
         delete tImgP;
+        loopRunning = false;
         loopCount = 0;
         commandList.clear();
 
     }
-    loopRunning = state;
+
 }
 
 void thermalComHandler::handleComTimeout()
@@ -109,6 +110,7 @@ void thermalComHandler::handleComTimeout()
     loopRunning = false;
     loopCount = 0;
     commandList.clear();
+    emit connectionError("Com timeout");
 }
 
 void thermalComHandler::setTImgP(ThermalImage *value)
@@ -126,7 +128,9 @@ bool thermalComHandler::translateBAtoFLoatVect(const QByteArray& ba, QVector<QVe
     vals->clear();
     bool bRetVal = true;
     QStringList strL = QString(ba).split(";");
-    if(strL[0] != "TS" || strL.last() != "TE\r\n")
+    strL.last().replace("\n","");
+    strL.last().replace("\r","");
+    if(strL[0] != "TS" || strL.last() != "TE")
         bRetVal = false;
     if(bRetVal)
     {
@@ -159,6 +163,8 @@ thermalComHandler::thermalComHandler(QObject *parent) : QObject(parent)
     tImgP = new ThermalImage(4,16);
     connect(this, SIGNAL(sendSingleCommandS(command)), this, SLOT(handleSendSingleCommand(command)));
     connect(tImgP, SIGNAL(newMinMax()), this, SIGNAL(newMinMax()));
+    ComTimer = new QTimer(this);
+    connect(ComTimer, SIGNAL(timeout()), this,SLOT(handleComTimeout()));
 }
 
 thermalComHandler::~thermalComHandler()
@@ -168,22 +174,20 @@ thermalComHandler::~thermalComHandler()
 
 void thermalComHandler::handleSendSingleCommand(const command& comm)
 {
-    msgType = mtSingle;
-    singleCallbackReceived = false;
     QByteArray msg = translateCommandtoBA(comm);
     emit sendCommandMessage(msg);
 }
 
 void thermalComHandler::handleSendLoopStartCommand()
 {
-    msgType = mtLoop;
     QByteArray msg = translateCommandtoBA(commandList[loopCount]);
+    loopRunning = true;
     emit sendCommandMessage(msg);
+    ComTimer->start(timeOutTime);
 }
 
 void thermalComHandler::handleSingleCallback(QByteArray msg)
 {
-    singleCallbackReceived = true;
     qDebug()<<msg;
 }
 
@@ -193,7 +197,7 @@ void thermalComHandler::handleLoopCallback(const QByteArray& msg)
     {
         command nowComm = commandList[loopCount];
         QString name = nowComm.getComm().mid(0,2);
-        if(name == command::getCommandStr(ctMEASATROT))
+        if(name == command::getCommandStr(ctMEASATROT) || name == command::getCommandStr(ctMEASURE))
         {
             if(msg.length()>4)
             {
@@ -205,19 +209,7 @@ void thermalComHandler::handleLoopCallback(const QByteArray& msg)
                 }
             }
         }
-        if(name == command::getCommandStr(ctMEASURE))
-        {
-            if(msg.length()>4)
-            {
-                QVector<QVector<float>> vect;
-                if(translateBAtoFLoatVect(msg,&vect))
-                {
-                    tImgP->addBlock(nowComm.getXPos(),nowComm.getYPos(),sensorResX,sensorResY,vect);
-                    emit newImageData();
-                }
-            }
-        }
-        if(!msg.startsWith("ER")) //when answer not Error send new Command else send old Command
+        if(msg.startsWith("OK") || msg.length()>10) //when answer ok send new Command else send old Command
         {
             if(loopCount<commandList.length()-1)
             {
@@ -227,18 +219,20 @@ void thermalComHandler::handleLoopCallback(const QByteArray& msg)
             {
                 loopCount = 0;
             }
+            handleSendLoopStartCommand();
         }
         else
         {
             qDebug()<< "Error in recv. Message while Loop";
         }
-        handleSendLoopStartCommand();
+
+        ComTimer->start(timeOutTime);
     }
 }
 
 void thermalComHandler::handleCommandCallback(QByteArray msg)
 {
-    if(msgType == mtSingle)
+    if(loopRunning == false)
     {
         handleSingleCallback(msg);
     }
