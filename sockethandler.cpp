@@ -1,4 +1,6 @@
 #include "sockethandler.h"
+#include <QTime>
+#include <QTimer>
 
 bool socketHandler::getCon_state() const
 {
@@ -14,6 +16,8 @@ socketHandler::socketHandler(QObject *parent) : QObject(parent)
 {
     p_sock = nullptr;
     con_state = false;
+    tempMsg = "";
+    connect(&recvTimer,SIGNAL(timeout()), this, SLOT(handle_recvTimeout()));
 }
 
 socketHandler::~socketHandler()
@@ -31,26 +35,20 @@ void socketHandler::connectToServer(bool state, QString ip, QString port)
         socketIp = ip;
         socketPort = static_cast<quint16>(port.toInt());
         p_sock->connectToHost(ip,static_cast<quint16>(port.toInt()));
-        while(p_sock->state() == QAbstractSocket::ConnectingState);
-        if(p_sock->state() == QAbstractSocket ::ConnectedState)
-        {
-            con_state = true;
-            emit socketConnected();
-            emit errorMsg("Connected");
-        }
-        else
-            emit errorMsg("Connection failed");
+        connect(p_sock, SIGNAL(connected()), this , SIGNAL(socketConnected()));
+        connectTimer.start(10000);
     }
     else
     {
-        p_sock->close();
-        if(p_sock->state() != QAbstractSocket::ConnectedState)
+        if(p_sock!= nullptr)
         {
-            emit socketClosed();
-            emit errorMsg("Connection closed");
-        }
-        if(p_sock != nullptr)
-        {
+            disconnect(p_sock, SIGNAL(connected()), this , SIGNAL(socketConnected()));
+            p_sock->close();
+            if(p_sock->state() != QAbstractSocket::ConnectedState)
+            {
+                emit socketClosed();
+                emit errorMsg("Connection closed");
+            }
             delete p_sock;
             p_sock = nullptr;
         }
@@ -74,6 +72,28 @@ void socketHandler::handle_sendData(QByteArray data)
 
 void socketHandler::handle_readyRead()
 {
-    QByteArray msg = p_sock->readAll();
-    emit data_received(msg);
+    tempMsg.append(p_sock->readAll());
+    recvTimer.start(20);
+}
+
+void socketHandler::handle_recvTimeout()
+{
+    recvTimer.stop();
+    emit data_received(tempMsg);
+    tempMsg.clear();
+}
+
+void socketHandler::handle_connectTimeout()
+{
+    connectTimer.stop();
+    QAbstractSocket::SocketState state = p_sock->state();
+    if(state == QAbstractSocket::ConnectedState)
+    {
+        emit socketConnected();
+        con_state = true;
+    }
+    else
+    {
+        emit errorMsg("Couldn´t connect, Timeout");
+    }
 }

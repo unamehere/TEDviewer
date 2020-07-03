@@ -2,6 +2,7 @@
 #define SOCKETHANDLER_H
 #include <QObject>
 #include <QTcpSocket>
+#include <QTimer>
 
 class socketHandler : public QObject
 {
@@ -10,6 +11,9 @@ class socketHandler : public QObject
     bool con_state;
     QString socketIp;
     quint16 socketPort;
+    QTimer recvTimer;
+    QTimer connectTimer;
+    QByteArray tempMsg;
 public:
     explicit socketHandler(QObject *parent = nullptr);
     ~socketHandler();
@@ -27,6 +31,8 @@ public slots:
     void connectToServer(bool state,QString ip = "", QString port = "");
     void handle_sendData(QByteArray data);
     void handle_readyRead();
+    void handle_recvTimeout();
+    void handle_connectTimeout();
 };
 
 #endif // SOCKETHANDLER_H
