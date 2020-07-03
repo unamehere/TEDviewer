@@ -53,21 +53,25 @@ void SerialWorker::ConnectToPort(QString sPortName, int iBaudRate, int iDataBits
 void SerialWorker::sendMessage(QByteArray txMessage)
 {
     qDebug()<< "Send Message: " << txMessage;
-    if(m_SerialPort->isOpen())
+    if(m_SerialPort != nullptr)
     {
-        qint64 sendCount = 0;
-        int MessageCount = txMessage.length();
-        sendCount = m_SerialPort->write(txMessage);
+        if(m_SerialPort->isOpen())
+        {
+            qint64 sendCount = 0;
+            int MessageCount = txMessage.length();
+            sendCount = m_SerialPort->write(txMessage);
 
-        if (sendCount == MessageCount)
-        {
-            emit messageSendComplete();
-            emit ErrorString("Send Message sucessfull");
+            if (sendCount == MessageCount)
+            {
+                emit messageSendComplete();
+                emit ErrorString("Send Message sucessfull");
+            }
+            else
+            {
+                m_SerialPort->flush();
+            }
         }
-        else
-        {
-            m_SerialPort->flush();
-        }
+        else emit ErrorString("couldn´t send no Port open!");
     }
     else emit ErrorString("couldn´t send no Port open!");
 }
@@ -76,24 +80,35 @@ void SerialWorker::handleReadyRead()
 {
     QByteArray rxMessage = m_SerialPort->readAll();
     m_rxMessageList.append(rxMessage);
-    m_rxTimer->start(5);
+    m_rxTimer->start(20);
 }
 
 void SerialWorker::ClosePort()
 {
-    if(m_SerialPort->isOpen())
+    if(m_SerialPort != nullptr)
     {
-        m_SerialPort->close();
-        m_SerialPort->deleteLater();
-        if (!m_SerialPort->isOpen())
+
+        if(m_SerialPort->isOpen())
         {
-            emit ErrorString("Port closed");
+            m_SerialPort->close();
+            if (!m_SerialPort->isOpen())
+            {
+                emit ErrorString("Port closed");
+                emit closed();
+                m_SerialPort->deleteLater();
+                m_SerialPort = nullptr;
+            }
+        }
+        else
+        {
+            emit ErrorString("port already closed");
             emit closed();
         }
     }
     else
     {
-        emit ErrorString("no Port open");
+        emit ErrorString("no port exists");
+        emit closed();
     }
 }
 
