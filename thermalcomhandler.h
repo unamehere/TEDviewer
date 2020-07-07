@@ -14,14 +14,15 @@ class thermalComHandler : public QObject
     const QStringList resolution = {"4x16", "16x16", "32x32", "64x64","64x48"};
     const unsigned sensorResY = 16; //Pxls
     const unsigned sensorResX = 4; //Pxls
-    const unsigned sensorFOV_Y = 40; //Deg
+    const unsigned sensorFOV_Y = 39; //Deg
     const unsigned sensorFOV_X = 10; //Deg
-    unsigned minDegX_now = 20;
-    unsigned minDegY_now = 20;
+    unsigned minDegX_now = 0;
+    unsigned minDegY_now = 35;
     unsigned maxDegX_now = 110;
     unsigned maxDegY_now = 110; //toDo: keep aspectratio
     QTimer* ComTimer;
     int timeOutTime = 3000;
+    bool fastMode = false;
 
     ThermalImage *tImgP;
     //Looping stuff
@@ -60,6 +61,8 @@ public:
 
     ThermalImage *getTImgP() const;
 
+    void setFastMode(bool value);
+
 signals:
     void sendSingleCommandS(command comm);
     void startStopLoopSignal(bool state);
@@ -71,8 +74,8 @@ signals:
 public slots:
     void handleSendSingleCommand(const command& comm);
     void handleSendLoopStartCommand();
-    void handleSingleCallback(QByteArray msg);
-    void handleCommandCallback(QByteArray callbackStr);
+    void handleSingleCallback(const QByteArray& msg);
+    void handleCommandCallback(const QByteArray& msg);
     void handleStartStopSignal(bool state, QString res);
     void handleComTimeout();
 };

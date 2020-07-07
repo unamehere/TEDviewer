@@ -18,7 +18,7 @@ void thermalComHandler::setMinDegY_now(const unsigned &value)
 bool thermalComHandler::fillCommandList(const QString &Res)
 {
     bool bRetVal = true;
-    commandList = {}; // empty CommandList;
+    commandList.clear(); // empty CommandList;
     unsigned resX = static_cast<unsigned>(Res.split("x")[0].toInt());
     unsigned resY = static_cast<unsigned>(Res.split("x")[1].toInt());
     unsigned mCountX = resX/this->sensorResX;
@@ -32,8 +32,8 @@ bool thermalComHandler::fillCommandList(const QString &Res)
     {
         unsigned xStep = static_cast<unsigned>(sensorFOV_X); // no interlacing
         unsigned yStep = static_cast<unsigned>(sensorFOV_Y);
-        unsigned startDegX = minDegX_now+sensorFOV_X/2;
-        unsigned startDegY = minDegY_now+sensorFOV_Y/2;
+        unsigned startDegX = minDegX_now;
+        unsigned startDegY = minDegY_now;
         for(unsigned y = 0; y < mCountY; y++)
         {
             if(mCountY>1)
@@ -46,7 +46,7 @@ bool thermalComHandler::fillCommandList(const QString &Res)
             for(unsigned x = 0; x< mCountX; x++)
             {
                 unsigned deg = 0;
-                if(y%2 == 0)
+                if(y%2 == 0 || !fastMode)
                 {
                     deg = startDegX+x*xStep;
                     command tempComm(ctMEASATROT,deg,x,y);
@@ -77,26 +77,25 @@ void thermalComHandler::handleStartStopSignal(bool state, QString res)
         //goto middle Position
         if(status)
         {
-            qDebug() << "OK";
+            qDebug() << "Start Loop";
             //command homeX(ctGOTOROT,midX); // add Single Command handling
             //command homeY(ctGOTOTILT,midY);
             //emit sendSingleCommandS(homeX);
             //emit sendSingleCommandS(homeY);
             if(tImgP != nullptr)
             {
-                //delete tImgP;
+                delete tImgP;
                 tImgP = nullptr;
             }
             tImgP = new ThermalImage(resX,resY);
             connect(tImgP, SIGNAL(newMinMax()), this, SIGNAL(newMinMax()));
+            loopCount = 0;
             handleSendLoopStartCommand();
-
         }
 
     }
     else
     {
-        delete tImgP;
         loopRunning = false;
         loopCount = 0;
         commandList.clear();
@@ -121,6 +120,11 @@ void thermalComHandler::setTImgP(ThermalImage *value)
 ThermalImage *thermalComHandler::getTImgP() const
 {
     return tImgP;
+}
+
+void thermalComHandler::setFastMode(bool value)
+{
+    fastMode = value;
 }
 
 bool thermalComHandler::translateBAtoFLoatVect(const QByteArray& ba, QVector<QVector<float> > *vals)
@@ -186,7 +190,7 @@ void thermalComHandler::handleSendLoopStartCommand()
     ComTimer->start(timeOutTime);
 }
 
-void thermalComHandler::handleSingleCallback(QByteArray msg)
+void thermalComHandler::handleSingleCallback(const QByteArray &msg)
 {
     qDebug()<<msg;
 }
@@ -209,7 +213,7 @@ void thermalComHandler::handleLoopCallback(const QByteArray& msg)
                 }
             }
         }
-        if(msg.startsWith("OK") || msg.length()>10) //when answer ok send new Command else send old Command
+        if(msg.startsWith("OK") || msg.startsWith("TS")) //when answer ok send new Command else send old Command
         {
             if(loopCount<commandList.length()-1)
             {
@@ -230,7 +234,7 @@ void thermalComHandler::handleLoopCallback(const QByteArray& msg)
     }
 }
 
-void thermalComHandler::handleCommandCallback(QByteArray msg)
+void thermalComHandler::handleCommandCallback(const QByteArray& msg)
 {
     if(loopRunning == false)
     {
