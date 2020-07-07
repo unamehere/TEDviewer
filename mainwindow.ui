@@ -233,9 +233,9 @@
             </widget>
            </item>
            <item row="1" column="0">
-            <widget class="QCheckBox" name="control_doubleResCB">
+            <widget class="QCheckBox" name="control_fastMode">
              <property name="text">
-              <string>double Resolution</string>
+              <string>fast Mode</string>
              </property>
             </widget>
            </item>
