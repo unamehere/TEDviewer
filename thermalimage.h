@@ -21,7 +21,6 @@
 class ThermalImage : public QWidget
 {
     Q_OBJECT
-private:
     QImage* img;
     QImage* gradientImg;
     QVector<QVector<float>>* tempMap;
