@@ -27,6 +27,7 @@ void SerialWorker::ConnectToPort(QString sPortName, int iBaudRate, int iDataBits
         if (!m_SerialPort->open(QIODevice::ReadWrite))
         {
             emit ErrorString("Couldn´t open Port");
+            emit ErrorString(m_SerialPort->errorString());
         }
     }
         if(!m_SerialPort->setBaudRate(m_pBaudRate))
@@ -117,6 +118,10 @@ void SerialWorker::handleError(QSerialPort::SerialPortError error)
     QSerialPort::SerialPortError pError = error;
     m_pErrorList.append(pError);
     emit ErrorString(QString("Serial Error happend: %1").arg(m_SerialPort->errorString()));
+    if(m_SerialPort->isOpen() == false)
+    {
+        emit closed();
+    }
 }
 
 void SerialWorker::handleRxTimeout()
