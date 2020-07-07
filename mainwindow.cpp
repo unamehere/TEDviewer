@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QFileDialog>
+#include <QSettings>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -51,6 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(tCoHa, SIGNAL(newMinMax()), this, SLOT(handle_newMinMaxT()));
     connect(tCoHa, SIGNAL(connectionError(QString)), this, SLOT(handle_connectionError(QString)));
     connect(ui->control_fixTempCB, SIGNAL(stateChanged(int)),this, SLOT(handle_fixedTempCB_changed(int)));
+    connect(ui->control_fastMode, SIGNAL(stateChanged(int)),this, SLOT(handle_fastMode_changed(int)));
     handle_resizeImgLabel();
 
     connect(&bworker, SIGNAL(ErrorMessageFF(QString)), ui->errorMessage, SLOT(setText(QString)));
@@ -60,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&socket, SIGNAL(errorMsg(QString)), ui->errorMessage, SLOT(setText(QString)));
     connect(&socket,SIGNAL(socketConnected()), this, SLOT(handle_ip_opened()));
     connect(&socket, SIGNAL(socketClosed()), this, SLOT(handle_ip_closed()));
-
+    loadSettings();
 }
 
 MainWindow::~MainWindow()
@@ -71,6 +73,33 @@ MainWindow::~MainWindow()
 void MainWindow::resizeEvent(QResizeEvent *)
 {
     handle_resizeImgLabel();
+}
+
+void MainWindow::writeSettings()
+{
+    QSettings settings(m_settings);
+    QString ip = ui->ip_ip->text();
+    QString port = ui->ip_port->text();
+    settings.beginGroup("mainwindow");
+    settings.setValue("ip",ip);
+    settings.setValue("port",port);
+    settings.endGroup(); //mainwindow
+}
+
+void MainWindow::loadSettings()
+{
+    QSettings settings(m_settings);
+    settings.beginGroup("mainwindow");
+    QString ip = settings.value("ip","").toString();
+    QString port = settings.value("port","").toString();
+    settings.endGroup(); //mainwindow
+    ui->ip_ip->setText(ip);
+    ui->ip_port->setText(port);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    writeSettings();
 }
 
 void MainWindow::on_com_refresh_clicked()
@@ -175,8 +204,8 @@ void MainWindow::handle_ip_opened()
 
 void MainWindow::handle_ip_closed()
 {
-    connect(&socket,SIGNAL(data_received(QByteArray)), tCoHa,SLOT(handleCommandCallback(QByteArray)));
-    connect(tCoHa, SIGNAL(sendCommandMessage(QByteArray)), &socket,SLOT(handle_sendData(QByteArray)));
+    disconnect(&socket,SIGNAL(data_received(QByteArray)), tCoHa,SLOT(handleCommandCallback(QByteArray)));
+    disconnect(tCoHa, SIGNAL(sendCommandMessage(QByteArray)), &socket,SLOT(handle_sendData(QByteArray)));
     ui->com_connect->setEnabled(true);
     ui->ip_connect->setText("Connect");
     ui->control_start->setEnabled(false);
@@ -222,6 +251,11 @@ void MainWindow::handle_fixedTempCB_changed(int state)
         connect(ui->control_maxTempLE, SIGNAL(editingFinished()), this, SLOT(handle_newFixedTemp()));
     }
 
+}
+
+void MainWindow::handle_fastMode_changed(int state)
+{
+    tCoHa->setFastMode(static_cast<bool>(state));
 }
 
 void MainWindow::handle_newFixedTemp()

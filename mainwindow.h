@@ -22,9 +22,13 @@ private:
     backroundworker bworker;
     thermalComHandler* tCoHa;
     socketHandler socket;
+    QString m_settings = "settings";
 
 
     void resizeEvent(QResizeEvent*);
+    void writeSettings();
+    void loadSettings();
+    void closeEvent(QCloseEvent *event);
 
 signals:
     void startStopS(bool state, QString res);
@@ -45,6 +49,7 @@ public slots:
     void handle_NewImageData();
     void handle_newMinMaxT();
     void handle_fixedTempCB_changed(int state);
+    void handle_fastMode_changed(int state);
     void handle_newFixedTemp();
     void handle_connectionError(QString msg);
 };
