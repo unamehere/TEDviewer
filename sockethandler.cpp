@@ -2,6 +2,16 @@
 #include <QTime>
 #include <QTimer>
 
+
+socketHandler::socketHandler(QObject *parent) : QObject(parent)
+{
+    p_sock = nullptr;
+    con_state = false;
+    tempMsg.clear();
+    connect(&recvTimer,SIGNAL(timeout()), this, SLOT(handle_recvTimeout()));
+    connect(&connectTimer,SIGNAL(timeout()), this, SLOT(handle_connectTimeout()));
+}
+
 bool socketHandler::getCon_state() const
 {
     return con_state;
@@ -12,17 +22,13 @@ void socketHandler::setCon_state(bool value)
     con_state = value;
 }
 
-socketHandler::socketHandler(QObject *parent) : QObject(parent)
-{
-    p_sock = nullptr;
-    con_state = false;
-    tempMsg = "";
-    connect(&recvTimer,SIGNAL(timeout()), this, SLOT(handle_recvTimeout()));
-}
-
 socketHandler::~socketHandler()
 {
-    connectToServer(false);
+    if(p_sock)
+    {
+        delete p_sock;
+        p_sock = nullptr;
+    }
 }
 
 void socketHandler::connectToServer(bool state, QString ip, QString port)
@@ -30,29 +36,32 @@ void socketHandler::connectToServer(bool state, QString ip, QString port)
     if(state == 1)
     {
         if(p_sock == nullptr)
+        {
             p_sock = new QTcpSocket(this);
-        connect(p_sock,SIGNAL(readyRead()), this, SLOT(handle_readyRead()));
+            //connect(p_sock, SIGNAL(connected()), this , SIGNAL(socketConnected()));
+            connect(p_sock,SIGNAL(readyRead()), this, SLOT(handle_readyRead()));
+        }
         socketIp = ip;
         socketPort = static_cast<quint16>(port.toInt());
         p_sock->connectToHost(ip,static_cast<quint16>(port.toInt()));
-        connect(p_sock, SIGNAL(connected()), this , SIGNAL(socketConnected()));
-        connectTimer.start(10000);
+        connectTimer.start(5000);
     }
     else
     {
         if(p_sock!= nullptr)
         {
-            disconnect(p_sock, SIGNAL(connected()), this , SIGNAL(socketConnected()));
             p_sock->close();
             if(p_sock->state() != QAbstractSocket::ConnectedState)
             {
+                disconnect(p_sock,SIGNAL(readyRead()), this, SLOT(handle_readyRead()));
+                //disconnect(p_sock, SIGNAL(connected()), this , SIGNAL(socketConnected()));
                 emit socketClosed();
                 emit errorMsg("Connection closed");
+                con_state = false;
+                delete p_sock;
+                p_sock = nullptr;
             }
-            delete p_sock;
-            p_sock = nullptr;
         }
-        con_state = false;
     }
 }
 
@@ -62,7 +71,7 @@ void socketHandler::handle_sendData(QByteArray data)
     if(p_sock->state() == QAbstractSocket::ConnectedState)
     {
         p_sock->write(data);
-        p_sock->flush();
+        p_sock->waitForBytesWritten();
     }
     else
     {
@@ -72,15 +81,22 @@ void socketHandler::handle_sendData(QByteArray data)
 
 void socketHandler::handle_readyRead()
 {
-    tempMsg.append(p_sock->readAll());
+    QString msg = p_sock->readLine();
+    tempMsg.append(msg);
     recvTimer.start(20);
+
 }
 
 void socketHandler::handle_recvTimeout()
 {
     recvTimer.stop();
-    emit data_received(tempMsg);
-    tempMsg.clear();
+    QString msgComplete = tempMsg.join("");
+    if( msgComplete.endsWith("\n"))
+    {
+        emit data_received(msgComplete.toUtf8());
+        tempMsg.clear();
+    }
+
 }
 
 void socketHandler::handle_connectTimeout()
@@ -95,5 +111,7 @@ void socketHandler::handle_connectTimeout()
     else
     {
         emit errorMsg("Couldn´t connect, Timeout");
+        p_sock->reset();
     }
+
 }

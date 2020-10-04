@@ -13,7 +13,7 @@ class socketHandler : public QObject
     quint16 socketPort;
     QTimer recvTimer;
     QTimer connectTimer;
-    QByteArray tempMsg;
+    QStringList tempMsg;
 public:
     explicit socketHandler(QObject *parent = nullptr);
     ~socketHandler();
