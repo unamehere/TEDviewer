@@ -29,17 +29,26 @@ void ThermalImage::addPixel(int x, int y, float value)
         {
             QVector<float>* vec = tempMap->data();
             vec[x][y] = value;
-            if(value > maxT)
+            if(!fixedMinMax)
             {
-                maxT = value;
-                emit newMinMax();
+                if(value > maxT)
+                {
+                    maxT = value;
+                    emit newMinMax();
+                }
+                if(value < minT)
+                {
+                    minT = value;
+                    emit newMinMax();
+                }
+                if(x == static_cast<int>(resX)-1 && y == static_cast<int>(resY)-1) //when last pixel is added
+                {
+                    findMaxTemp();
+                    findMinTemp();
+                    emit newMinMax();
+                }
             }
-            if(value < minT)
-            {
-                minT = value;
-                emit newMinMax();
-            }
-            int cindex = getPercent(value);
+            int cindex = getColorIndex(value);
             QColor c = colorGradient.at(cindex);
             img->setPixelColor(x,resY-1-y,c); //To Invert Y Axis
         }
@@ -65,7 +74,7 @@ bool ThermalImage::addBlock(int startX, int startY, int sizeX, int sizeY, QVecto
     return retVal;
 }
 
-QImage *ThermalImage::getImg() const
+const QImage *ThermalImage::getImg() const
 {
     return img;
 }
@@ -73,6 +82,19 @@ QImage *ThermalImage::getImg() const
 const float &ThermalImage::getTemp(int x, int y)
 {
     return tempMap->data()[x][y];
+}
+
+void ThermalImage::fillGradientImg()
+{
+    int count = colorGradient.size();
+    this->gradientImg = new QImage(4,count, QImage::Format_RGB16);
+    for (int i = 0; i< count; i++)
+    {
+      gradientImg->setPixelColor(0,i,colorGradient.at(count-1-i));
+      gradientImg->setPixelColor(1,i,colorGradient.at(count-1-i));
+      gradientImg->setPixelColor(2,i,colorGradient.at(count-1-i));
+      gradientImg->setPixelColor(3,i,colorGradient.at(count-1-i));
+    }
 }
 
 void ThermalImage::updateGradient()
@@ -85,7 +107,7 @@ void ThermalImage::updateGradient()
             if(nowC != Qt::black)
             {
                 float value = getTemp(x,y);
-                int cindex = getPercent(value);
+                int cindex = getColorIndex(value);
                 QColor c = colorGradient.at(cindex);
                 img->setPixelColor(x,resY-1-y,c); //Invert Y from Image
             }
@@ -94,35 +116,135 @@ void ThermalImage::updateGradient()
 
 }
 
-int ThermalImage::getPercent(const float &val)
+void ThermalImage::handleImageComplete()
+{
+    findMinTemp();
+    findMaxTemp();
+    updateGradient();
+}
+
+void ThermalImage::handle_newFixedTemps(float min, float max)
+{
+    if(fixedMinMax == true)
+    {
+        this->minT = min;
+        this->maxT = max;
+        updateGradient();
+    }
+}
+
+const QImage *ThermalImage::getGradientImg() const
+{
+    return gradientImg;
+}
+
+void ThermalImage::setFixedMinMax(bool value)
+{
+    fixedMinMax = value;
+}
+
+int ThermalImage::getColorIndex(const float &val)
 {
     int perc = 0;
     if(abs(maxT - minT) > 0.01)
-        perc = static_cast<int>(1/(maxT-minT)*(val-minT)*255);
+        perc = static_cast<int>(1/(maxT-minT)*(val-minT)*(colorGradient.size()-1));
+    if(perc < 0)
+        perc = 0;
+    if(perc >= colorGradient.size())
+        perc = colorGradient.size()-1;
     return perc;
 }
 
 void ThermalImage::fillGradient()
 {
-    for(int i = 0; i <= 255; i++)
+    for (int i = 125;i <255; i+=2) //from darkblue to blue
+    {
+        QColor c;
+        c.setRgb(0,0,i);
+        colorGradient.append(c);
+    }
+    for(int i = 0; i <= 255; i++) //from blue to red
     {
         QColor c;
         c.setRgb(i,0,255-i);
         colorGradient.append(c);
     }
+    for (int i = 0; i< 255; i+=2) //from red to yellow
+    {
+        QColor c;
+        c.setRgb(255,i,0);
+        colorGradient.append(c);
+    }
 }
 
-ThermalImage::ThermalImage(unsigned resX_, unsigned resY_, QWidget *parent):resX(resX_), resY(resY_)
+void ThermalImage::findMinTemp()
 {
+    float minTemp = getTemp(0,0);
+    QPoint mtempP;
+    for (int y = 0; y < static_cast<int>(resY); y++)
+    {
+        for (int x = 0; x < static_cast<int>(resX); x++)
+        {
+            QColor nowC = img->pixelColor(x,resY-1-y);
+            if(nowC != Qt::black)
+            {
+                float temp = getTemp(x,y);
+                if(temp < minTemp)
+                {
+                    minTemp = temp;
+                    mtempP.setX(x);
+                    mtempP.setY(y);
+                }
+            }
+        }
+    }
+    minT = minTemp;
+    minP = mtempP;
+}
+
+void ThermalImage::findMaxTemp()
+{
+    float maxTemp = getTemp(0,0);
+    QPoint maxtempP;
+    for (int y = 0; y < static_cast<int>(resY); y++)
+    {
+        for (int x = 0; x < static_cast<int>(resX); x++)
+        {
+            QColor nowC = img->pixelColor(x,resY-1-y);
+            if(nowC != Qt::black)
+            {
+                float temp = getTemp(x,y);
+                if(temp > maxTemp)
+                {
+                    maxTemp = temp;
+                    maxtempP.setX(x);
+                    maxtempP.setY(y);
+                }
+            }
+        }
+    }
+    maxT = maxTemp;
+    maxP = maxtempP;
+}
+
+ThermalImage::ThermalImage(unsigned resX_, unsigned resY_, QWidget *parent):resX(resX_), resY(resY_), QWidget(parent)
+{
+    fixedMinMax = false;
     img = new QImage(static_cast<int>(resX_),static_cast<int>(resY_),QImage::Format_RGB16);
     img->fill(Qt::black);
     tempMap = new QVector<QVector<float>> (static_cast<int>(resX_),QVector<float>(static_cast<int>(resY_)));
     connect(this,SIGNAL(newMinMax()), this, SLOT(updateGradient()));
+    connect(this,SIGNAL(imageComplete()), this, SLOT(handleImageComplete()));
     fillGradient();
+    fillGradientImg();
 }
 
 ThermalImage::~ThermalImage()
 {
     delete img;
+    img = nullptr;
+    delete gradientImg;
+    gradientImg = nullptr;
     delete tempMap;
+    tempMap = nullptr;
 }

@@ -21,16 +21,22 @@
 class ThermalImage : public QWidget
 {
     Q_OBJECT
-private:
     QImage* img;
+    QImage* gradientImg;
     QVector<QVector<float>>* tempMap;
     QList<QColor> colorGradient;
     unsigned resX;
     unsigned resY;
-    float minT = 20;
-    float maxT = 21;
-    int getPercent(const float& val); //0->255
+    float minT = 10;
+    float maxT = 30;
+    QPoint minP;
+    QPoint maxP;
+    bool fixedMinMax;
+    int getColorIndex(const float& val);
     void fillGradient();
+    void findMinTemp();
+    void findMaxTemp();
+    void fillGradientImg();
 public:
     explicit ThermalImage(unsigned resX_ = 1 , unsigned resY_ = 1,QWidget *parent = nullptr);
     ~ThermalImage();
@@ -40,14 +46,21 @@ public:
     unsigned getResY() const;
     void addPixel(int x, int y, float value);
     bool addBlock(int startX, int startY, int sizeX, int sizeY, QVector<QVector<float>>& vals);
-    QImage *getImg() const;
+    const QImage *getImg() const;
     const float& getTemp(int x, int y);
+
+    const QImage *getGradientImg() const;
+
+    void setFixedMinMax(bool value);
 
 signals:
     void newMinMax();
+    void imageComplete();
 
 public slots:
     void updateGradient();
+    void handleImageComplete();
+    void handle_newFixedTemps(float min, float max);
 };
 
 #endif // THERMALIMAGE_H

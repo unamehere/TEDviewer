@@ -14,8 +14,9 @@ void backroundworker::setConnected(bool value)
 
 backroundworker::backroundworker(QObject *parent) : QObject(parent)
 {
+    connected = false;
     //manual Signal Slot connections
-    WorkerThread = new QThread();
+    WorkerThread = new QThread(this);
 
     m_worker = new SerialWorker();
 
@@ -25,7 +26,6 @@ backroundworker::backroundworker(QObject *parent) : QObject(parent)
     connect(m_worker, SIGNAL(ErrorString(QString)),this, SIGNAL(ErrorMessageFF(QString)));
     connect(this,SIGNAL(connectPort(QString, int, int, int, int)),m_worker,SLOT(ConnectToPort(QString, int, int, int, int)));
     connect(m_worker, SIGNAL(connected()),this,SIGNAL(connectedPort()));
-    connect(m_worker, SIGNAL(messageReceived(QByteArray)),this, SLOT(newRxMessageCom(QByteArray)));
     connect(m_worker, SIGNAL(messageReceived(QByteArray)),this, SIGNAL(newRXMessageComS(QByteArray)));
     connect(this,SIGNAL(sendMessageCom(QByteArray)),m_worker,SLOT(sendMessage(QByteArray)));
     connect(this,SIGNAL(ClosePort()),m_worker,SLOT(ClosePort()));
@@ -52,19 +52,6 @@ QList<QString> backroundworker::GetComPorts()
         PortsStringList.append(Port.portName());
     }
     return PortsStringList;
-}
-
-
-
-void backroundworker::newRxMessageCom(QByteArray rxMessage)
-{
-    bool ok = false;
-    QString Message = QString(rxMessage);
-
-
-            if(ok)
-                emit readSuccess();
-
 }
 
 void backroundworker::comRead()
